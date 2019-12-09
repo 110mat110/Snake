@@ -25,25 +25,24 @@ namespace Snake {
         private const int GameWidth = 40;
         private const int GameHeight = 20;
 
-        private Apple apple = new Apple();
+        private Apple apple = null;
 
         public MainWindow() {
             InitializeComponent();
-
+            //Create default small snake in top corner
             SnakeList.Add(new SnakeBlock(new Point(0, 0)));
             SnakeList.Add(new SnakeBlock(new Point(0, 1)));
             SnakeList.Add(new SnakeBlock(new Point(0, 2)));
-
-            apple.gameHeight = GameHeight;
-            apple.gameWidth = GameWidth;
-
-            apple.GenerateNewPosition(SnakeList);
+            //set apple default canvas position
+            //create new apple
+            apple = new Apple(SnakeList, GameWidth, GameHeight);
 
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             DispatcherTimer gameTicker = new DispatcherTimer {
                 Interval = new TimeSpan(0,0,0,0,50)
             };
             gameTicker.Tick += GameTicker_Tick;
+            //Start!
             gameTicker.Start();
         }
 
@@ -70,8 +69,6 @@ namespace Snake {
                 Ydirection = 1;
             }
 
-            Debug.WriteLine(apple.Position.X.ToString() + "," + apple.Position.Y.ToString() + " | " + SnakeList[0].ActualPosition.X.ToString() + "," + SnakeList[0].ActualPosition.Y.ToString());
-
             //Now we know where to go, so move
             MoveSnakeInDirection(Xdirection, Ydirection);
 
@@ -86,9 +83,12 @@ namespace Snake {
         }
 
         private void HandleApple() {
+            //Check, if snake head is on same position as apple
             if (apple.CheckIfSnakeEats(SnakeList)) {
+                //if yes, extend snake by one
                 SnakeList.Add(new SnakeBlock(SnakeList[SnakeList.Count - 1].LastPosition));
-                apple.GenerateNewPosition(SnakeList);
+                //and create another apple. Old one will be forgotten
+                apple = new Apple(SnakeList, GameWidth, GameHeight);
             }
         }
 
@@ -100,15 +100,16 @@ namespace Snake {
                 //Genereate rectangle and add it to canvas
                 GameCanvas.Children.Add(CreateSnakerectangle(dot.ActualPosition));
             }
+            //draw an apple
             GameCanvas.Children.Add(CreateApple(apple.Position));
 
         }
 
         private UIElement CreateSnakerectangle(Point directions) {
-
+            //To universaly determine one rectangle size
             var width = GameCanvas.Width / GameWidth;
             var height = GameCanvas.Height / GameHeight;
-
+            //create rectangle with this atributes
             var rect = new Rectangle {
                 Stroke = new SolidColorBrush(Colors.Black),
                 Fill = new SolidColorBrush(Colors.Black),
@@ -116,16 +117,17 @@ namespace Snake {
                 Height = height,
                 StrokeThickness = 1
             };
+            //Set rectangle and align it by top left corner
             Canvas.SetLeft(rect, directions.X * width);
             Canvas.SetTop(rect, directions.Y * height);
             return rect;
         }
 
         private UIElement CreateApple(Point directions) {
-
+            //To universaly determine one rectangle size
             var width = GameCanvas.Width / GameWidth;
             var height = GameCanvas.Height / GameHeight;
-
+            //create rectangle with this atributes
             var rect = new Rectangle {
                 Stroke = new SolidColorBrush(Colors.Red),
                 Fill = new SolidColorBrush(Colors.Red),
@@ -133,15 +135,21 @@ namespace Snake {
                 Height = height,
                 StrokeThickness = 1
             };
+            //Set rectangle and align it by top left corner
             Canvas.SetLeft(rect, directions.X * width);
             Canvas.SetTop(rect, directions.Y * height);
             return rect;
         }
 
+        //check if head is collision with any other snake block. We do not consider wall as colision
         private void DetectCollision() {
+
             for(int i = 1; i<SnakeList.Count; i++) {
+                //if positions are the same that means, that snake crashed
                 if (Point.Equals(SnakeList[0].ActualPosition, SnakeList[i].ActualPosition)) {
+                    //So show message
                     MessageBox.Show("You lost!");
+                    //And close game
                     App.Current.Shutdown();
                 }
             }

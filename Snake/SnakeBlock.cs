@@ -7,22 +7,20 @@ using System.Windows;
 
 namespace Snake {
     public class SnakeBlock {
-
-        public Point ActualPosition { get; private set; }
-        public Point LastPosition { get; private set; }
-
-        public SnakeBlock() {
-
-        }
-
+        
+        public Point ActualPosition { get; private set; } // Block actual position
+        public Point LastPosition { get; private set; }   // Block last position for moving purpose
+        //Constructor with position setup
         public SnakeBlock(Point position) {
             ActualPosition = position;
             LastPosition = position;
         }
 
-        public void Move(Point position) {
+        public void Move(Point newPosition) {
+            //Set actual position as last valid
             LastPosition = ActualPosition;
-            ActualPosition = position;
+            //And change actual postion to new
+            ActualPosition = newPosition;
         }
     }
 }
