@@ -56,7 +56,14 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Apple.cs" />
-    <Compile Include="SnakeBlock.cs" />
+    <Compile Include="Game.cs" />
+    <Compile Include="Neural\Connections.cs" />
+    <Compile Include="Neural\IInput.cs" />
+    <Compile Include="Neural\Input.cs" />
+    <Compile Include="Neural\NeuralNetwork.cs" />
+    <Compile Include="Neural\Neuron.cs" />
+    <Compile Include="Snake\Snake.cs" />
+    <Compile Include="Snake\SnakeBlock.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

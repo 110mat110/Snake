@@ -5,9 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Snake"
         mc:Ignorable="d"
-        Title="MainWindow" Height="420" Width="850">
+        Title="MainWindow" Height="1000" Width="1500">
     <Grid>
-        <Canvas x:Name="GameCanvas" HorizontalAlignment="Left" Height="400" Width="800"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="314*"/>
+        </Grid.RowDefinitions>
+        <Label x:Name="BestFitenss"  Content="BF: 100" Width="100" Margin="54,0,1338,0"/>
+        <Label x:Name="Round"  Content="Round: 100" Width="100" Margin="159,0,1233,0"/>
+        <Button Width="20" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Click="Button_Click" />
+        <Canvas x:Name="GameCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" Height="800" Width="1400" Grid.Row="1"/>
 
     </Grid>
 </Window>
