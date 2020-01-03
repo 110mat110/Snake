@@ -70,7 +70,7 @@ namespace Snake {
             var bestSnake = game.GetAllSnakes().Where(x => x.Fitness == game.BestFitness).First();
 
             //MessageBox.Show("game ended! best fitness is " + game.BestFitness);
-            game = new Game(GameWidth, GameHeight, NoSnakes, game.GetAllSnakes().Take(5).ToList());
+            game = new Game(GameWidth, GameHeight, NoSnakes, game.GetAllSnakes().OrderByDescending(x => x.Fitness).Take(5).ToList());
         }
 
         private void DrawGame() {

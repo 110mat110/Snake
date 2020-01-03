@@ -29,7 +29,7 @@ namespace Snake {
                 Point newPos = new Point(rnd.Next(gameWidth -1 ), rnd.Next(gameHeight -1));
                 //chcek all snake points, if there is collision
                 foreach(var snake in SnakeList) {
-                    foreach (var sp in snake.SnakeList) {
+                    foreach (var sp in snake.CurrentSnakeBlocks) {
 
                         //If there is, raise flag
                         if (Equals(sp, newPos)) {

@@ -55,11 +55,12 @@ namespace Snake {
 
         private void MutateSnakes(int noSnakes, List<SnakeObject> snakes) {
             List<SnakeObject> newSnakes = new List<SnakeObject>();
-            foreach(var s in snakes) {
+            /*foreach(var s in snakes) {
                 newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, s.Brain));            
-            }
+            }*/
             for(int i=1; i<snakes.Count; i++) {
                 NeuralNetwork brain = new NeuralNetwork(snakes[i - 1].Brain, snakes[i].Brain);
+                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain));
                 newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain));
             }
             snakes.Clear();
@@ -116,7 +117,7 @@ namespace Snake {
             List<SnakeBlock> sblist = new List<SnakeBlock>();
             foreach(var s in SnakeList) {
                 if (s.Active) {
-                    sblist.AddRange(s.SnakeList);
+                    sblist.AddRange(s.CurrentSnakeBlocks);
                 }
             }
             return sblist;

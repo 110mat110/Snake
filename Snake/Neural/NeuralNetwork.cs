@@ -14,7 +14,7 @@ namespace Snake.Neural {
         public List<Neuron> OutputLayer = new List<Neuron>();
 
         const int NoInputs = 6;
-        const int NoOutputs = 1;
+        const int NoOutputs = 4;
         public NeuralNetwork(int NoHiddenNeurons, Random randomizer) {
 
             for(int i =0; i<NoInputs; i++) {
@@ -74,7 +74,7 @@ namespace Snake.Neural {
 
         private double MutateWeight(Connection c1, Connection c2, Random randomizer) {
             double ratio = randomizer.NextDouble();
-            return c1.Weight * ratio + c2.Weight * (1 - ratio) + randomizer.NextDouble()-0.5;
+            return c1.Weight * ratio + c2.Weight * (1 - ratio) + randomizer.NextDouble()*0.05 - 0.025;
         }
         
         public List<double> DoNeuralStuff(List<double> inputs) {

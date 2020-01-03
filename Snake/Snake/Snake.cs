@@ -9,14 +9,14 @@ using System.Windows;
 
 namespace Snake {
     public class SnakeObject {
-        public List<SnakeBlock> SnakeList = new List<SnakeBlock>();
+        public List<SnakeBlock> CurrentSnakeBlocks = new List<SnakeBlock>();
 
         private int GameWidth { get; set; }
         private int GameHeight { get; set; }
 
         public bool Active { get; private set; }
 
-        public int Fitness { get { return Active? SnakeList.Count: SnakeList.Count-5; } }
+        public int Fitness { get { return CurrentSnakeBlocks.Count; } }
         public NeuralNetwork Brain;
 
         private int LastMoveX = 0;
@@ -31,7 +31,7 @@ namespace Snake {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
-            SnakeList.Add(new SnakeBlock(firstPosition));
+            CurrentSnakeBlocks.Add(new SnakeBlock(firstPosition));
 
             Brain = new NeuralNetwork(5, new Random());
         }
@@ -40,7 +40,7 @@ namespace Snake {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
-            SnakeList.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
+            CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
 
             Brain = new NeuralNetwork(5, randomizer);
         }
@@ -49,7 +49,7 @@ namespace Snake {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
-            SnakeList.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
+            CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
 
             Brain = brain;
         }
@@ -64,7 +64,7 @@ namespace Snake {
             LastMoveX = xdirection;
             LastMoveY = ydirection;
             //SnakeList[0] is head, so take its position
-            var headPos = SnakeList[0].ActualPosition;
+            var headPos = CurrentSnakeBlocks[0].ActualPosition;
             //And calculate new position
             headPos.X += xdirection;
             headPos.Y += ydirection;
@@ -76,12 +76,12 @@ namespace Snake {
             if (headPos.Y > GameHeight) headPos.Y = 0;
 
             //Then move head to this position
-            SnakeList[0].Move(headPos);
+            CurrentSnakeBlocks[0].Move(headPos);
 
             //And move rest of blocks except head
-            for (int i = 1; i < SnakeList.Count; i++) {
+            for (int i = 1; i < CurrentSnakeBlocks.Count; i++) {
                 //Set block last position of previous block
-                SnakeList[i].Move(SnakeList[i - 1].LastPosition);
+                CurrentSnakeBlocks[i].Move(CurrentSnakeBlocks[i - 1].LastPosition);
             }
         }
 
@@ -95,12 +95,12 @@ namespace Snake {
 
             //Xapple Yapple Xenemy1 Yenemy1 Xenemy2 Yenemy2
             List<double> inputs = new List<double>() {
-                nearestApple.X,
-                nearestApple.Y
+                nearestApple.X - CurrentSnakeBlocks[0].ActualPosition.X,
+                nearestApple.Y- CurrentSnakeBlocks[0].ActualPosition.Y,
             };
             foreach(var x in nearestSnakes) {
-                inputs.Add(x.X);
-                inputs.Add(x.Y);
+                inputs.Add(x.X - CurrentSnakeBlocks[0].ActualPosition.X);
+                inputs.Add(x.Y - CurrentSnakeBlocks[0].ActualPosition.Y);
             }
 
             var moves = DecodeMove(Brain.DoNeuralStuff(inputs));
@@ -109,13 +109,11 @@ namespace Snake {
         }
 
         private int[] DecodeMove(List<double> move) {
-            if (move[0] < 0.25) return new int[] { -1, 0 };
-            if (move[0] >= 0.25 && move[0] < 0.5) return new int[] { 1, 0 };
-            if (move[0] >= 0.50 && move[0] < 0.75) return new int[] { 0, -1 };
-            if (move[0] >= 0.75) return new int[] { 0, 1 };
-
-            Debug.WriteLine("Unexpected move " + move[0]);
-            return new int[] { 0, 0 };
+            int xpos = (move[0] > 0.8) ? 1 : 0;
+            if(move[1] > 0.8) xpos--;
+            int ypos = (move[2] > 0.8) ? 1 : 0;
+            if (move[3] > 0.8) ypos--;
+            return new int[] { xpos, ypos };
 
             /*
             List<int> outputs = new List<int>();
@@ -133,7 +131,7 @@ namespace Snake {
             double distance = double.MaxValue;
             Point p = apples[0].Position; 
             foreach(var apple in apples) {
-                if (Distance(apple.Position, SnakeList[0].ActualPosition) < distance)
+                if (Distance(apple.Position, CurrentSnakeBlocks[0].ActualPosition) < distance)
                     p = apple.Position;
             }
             return p;
@@ -144,12 +142,12 @@ namespace Snake {
             List<Point> points = new List<Point>();
             foreach (var s in Snakes) {
                 if (s.Active && !s.Equals(this))
-                    foreach (var sp in s.SnakeList)
+                    foreach (var sp in s.CurrentSnakeBlocks)
                         points.Add(sp.ActualPosition);
 
             }
 
-            return points.OrderBy(point => Distance(SnakeList[0].ActualPosition, point)).Take(capacity).ToList();
+            return points.OrderBy(point => Distance(CurrentSnakeBlocks[0].ActualPosition, point)).Take(capacity).ToList();
         }
 
         private double Distance(Point p1, Point p2) {
@@ -159,11 +157,11 @@ namespace Snake {
         public void DetectColision(List<SnakeObject> snakeList, List<Apple> apples) {
             foreach (SnakeObject s in snakeList) {
                 if (!s.Equals(this) && s.Active) {
-                    foreach (var snakeBlock in s.SnakeList) {
+                    foreach (var snakeBlock in s.CurrentSnakeBlocks) {
                         //if positions are the same that means, that snake crashed
-                        if (Point.Equals(this.SnakeList[0].ActualPosition, snakeBlock.ActualPosition)) {
+                        if (Point.Equals(this.CurrentSnakeBlocks[0].ActualPosition, snakeBlock.ActualPosition)) {
                             this.Active = false;
-                            foreach(var sb in this.SnakeList) {
+                            foreach(var sb in this.CurrentSnakeBlocks) {
                                 apples.Add(new Apple(sb.ActualPosition));
                             }
                         }
@@ -175,7 +173,7 @@ namespace Snake {
         public void EatApple(List<Apple> apples) {
             List<Apple> applesToRemoveList = new List<Apple>();
             foreach (var apple in apples) {
-                if (Point.Equals(this.SnakeList[0].ActualPosition, apple.Position)){
+                if (Point.Equals(this.CurrentSnakeBlocks[0].ActualPosition, apple.Position)){
                     applesToRemoveList.Add(apple);
                     ExtendSnake();
                 }
@@ -186,7 +184,7 @@ namespace Snake {
         }
 
         private void ExtendSnake() {
-            SnakeList.Add(new SnakeBlock(SnakeList[SnakeList.Count - 1].LastPosition));
+            CurrentSnakeBlocks.Add(new SnakeBlock(CurrentSnakeBlocks[CurrentSnakeBlocks.Count - 1].LastPosition));
         }
     }
 }
