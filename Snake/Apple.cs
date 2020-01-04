@@ -10,17 +10,15 @@ namespace Snake {
         //Posoiton of apple
         public Point Position { get; set; }
         //constructor with multiple parameters. It is for generation of apple
-        public Apple(List<SnakeObject> Snake, int gameWidth, int gameHeight) {
-            GenerateNewPosition(Snake, gameWidth, gameHeight);
+        public Apple(List<SnakeObject> Snake, int gameWidth, int gameHeight, Random rnd) {
+            GenerateNewPosition(Snake, gameWidth, gameHeight, rnd);
         }
         public Apple(Point Position) {
             this.Position = Position;
         }
 
 
-        public void GenerateNewPosition(List<SnakeObject> SnakeList, int gameWidth, int gameHeight) {
-            //Create randomizer
-            var rnd = new Random();
+        public void GenerateNewPosition(List<SnakeObject> SnakeList, int gameWidth, int gameHeight, Random rnd) {
             bool goodPosition = true;
             //random generate new positions. If there is snake on this position, pick another position
             do {

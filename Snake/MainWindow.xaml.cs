@@ -22,58 +22,95 @@ namespace Snake {
     /// </summary>
     public partial class MainWindow : Window {
 
-        private Game game;
+        List<Game> gameList = new List<Game>();
+
         private const int GameWidth = 60;
         private const int GameHeight = 30;
-        private const int NoSnakes = 10;
+        private const int NoSnakes = 5;
+        private const int NoGames = 200;
         DispatcherTimer gameTicker;
-        private const int NoRounds = 10000;
+        private const int NoRounds = 2000;
         private int ActualRound = 0;
+        private const double MutateRatio = 1;
+
+        private Random globalRandom;
+        private int skiprounds = 200;
 
         public MainWindow() {
             InitializeComponent();
-
-            game = new Game(GameWidth, GameHeight, NoSnakes);
+            globalRandom = new Random();
+            for (int i =0; i<NoGames; i++)
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom));
 
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             gameTicker = new DispatcherTimer {
+                //Interval = new TimeSpan(0, 0, 0, 0, 50)
                 Interval = new TimeSpan(1)
             };
-            gameTicker.Tick += GameTicker_Tick;
+            gameTicker.Tick += GameTicker_TickAsync;
 
-            DrawGame();
+            DrawGame(gameList[0]);
         }
 
         /*There you have to move snake and do everything*/
-        private void GameTicker_Tick(object sender, EventArgs e) {
-            try {
-                game.GameTick();
-            } catch (Exception) {
-                ResetGame();
+        private void GameTicker_TickAsync(object sender, EventArgs e) {
+            bool AtLeastOneGamesActive = false;
+
+            foreach (var game in gameList) {
+                if (game.Active) {
+                    game.GameTick();
+                }
             }
-            if (game.RunningSnakes <= 1 || game.GameRounds> NoRounds) {
-                ResetGame();
+
+            foreach (var game in gameList) {
+                //if (game.GameRounds > NoRounds) {
+                if (game.RunningSnakes <= 1 || game.GameRounds> NoRounds) {
+                    game.Active = false;
+                }
+
+                if (game.Active)
+                    AtLeastOneGamesActive = true;
             }
 
             //Draw game
             if(gameTicker.IsEnabled)
-                DrawGame();
+                DrawGame(gameList[0]);
+
+            if (!AtLeastOneGamesActive)
+                ResetGame();
+        }
+
+        private async Task FastLoop() {
+
+            List<Task> tasks = new List<Task>();
+            foreach (var game in gameList) {
+                    tasks.Add(game.FastLoop(NoRounds));
+            }
+            await Task.WhenAll(tasks);
+
+            Debug.WriteLine("Rounds: " + gameList[0].GameRounds);
+            ResetGame();
         }
 
         private void ResetGame() {
             ActualRound++;
-
-            Debug.WriteLine("BF: " + game.BestFitness);
-
             Round.Content = "Round: " + ActualRound;
-            BestFitenss.Content = "BF: " + game.BestFitness;
-            var bestSnake = game.GetAllSnakes().Where(x => x.Fitness == game.BestFitness).First();
+
+            List<SnakeObject> allSnakes = new List<SnakeObject>();
+            foreach (var game in gameList)
+                allSnakes.AddRange(game.GetAllSnakes());
+
+            double bestFitnes = allSnakes.OrderByDescending(x => x.Fitness).First().Fitness;
+            BestFitenss.Content = "BF: " + bestFitnes;
+            Debug.WriteLine("RND " + ActualRound + " BF: " + bestFitnes);
 
             //MessageBox.Show("game ended! best fitness is " + game.BestFitness);
-            game = new Game(GameWidth, GameHeight, NoSnakes, game.GetAllSnakes().OrderByDescending(x => x.Fitness).Take(5).ToList());
+            gameList.Clear();
+            for(int i = 0; i<NoGames; i++)
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, allSnakes.OrderByDescending(x => x.Fitness).Take(NoSnakes).ToList(), globalRandom, MutateRatio));
         }
 
-        private void DrawGame() {
+        private void DrawGame(Game game) {
             //first clear whole canvas
             GameCanvas.Children.Clear();
             //then add each point to canvas
@@ -122,10 +159,10 @@ namespace Snake {
             return rect;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
+        private async void Button_Click(object sender, RoutedEventArgs e) {
             gameTicker.Stop();
-            while (ActualRound % 100 != 0) {
-                GameTicker_Tick(this, new EventArgs());
+            while (ActualRound % skiprounds != 0) {
+                await FastLoop();
             }
 
             gameTicker.Start();

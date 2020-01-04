@@ -20,20 +20,15 @@ namespace Snake {
         public NeuralNetwork Brain;
 
         private int LastMoveX = 0;
-        private int LastMoveY = 1;
+        private int LastMoveY = 0;
 
-        public SnakeObject(int gameWidth, int gameHeight) {
-            //TODO brainfuck ako sa vola kontruktor z ineho?
-            new SnakeObject(gameWidth, gameHeight, new Point(new Random().Next(0,GameWidth), new Random().Next(0, GameHeight)));
-        }
-
-        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition) {
+        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition, Random random) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(firstPosition));
 
-            Brain = new NeuralNetwork(5, new Random());
+            Brain = new NeuralNetwork(5, random);
         }
 
         public SnakeObject(int gameWidth, int gameHeight, Random randomizer) {
@@ -58,6 +53,8 @@ namespace Snake {
             if (!Active) return;
             //If snake is not moving, do not move :P
             if (xdirection == 0 && ydirection == 0) {
+                if (LastMoveX == 0 && LastMoveY == 0)
+                    return;
                 MoveSnakeInDirection(LastMoveX, LastMoveY);
                 return;
             }
@@ -95,24 +92,30 @@ namespace Snake {
 
             //Xapple Yapple Xenemy1 Yenemy1 Xenemy2 Yenemy2
             List<double> inputs = new List<double>() {
-                nearestApple.X - CurrentSnakeBlocks[0].ActualPosition.X,
-                nearestApple.Y- CurrentSnakeBlocks[0].ActualPosition.Y,
+                (nearestApple.X - CurrentSnakeBlocks[0].ActualPosition.X)/GameHeight,
+                (nearestApple.Y- CurrentSnakeBlocks[0].ActualPosition.Y)/GameWidth,
             };
+            //No need for other snakes
+            /*
             foreach(var x in nearestSnakes) {
-                inputs.Add(x.X - CurrentSnakeBlocks[0].ActualPosition.X);
-                inputs.Add(x.Y - CurrentSnakeBlocks[0].ActualPosition.Y);
+                inputs.Add((x.X - CurrentSnakeBlocks[0].ActualPosition.X)/GameHeight);
+                inputs.Add((x.Y - CurrentSnakeBlocks[0].ActualPosition.Y)/GameWidth);
             }
-
+            */
             var moves = DecodeMove(Brain.DoNeuralStuff(inputs));
 
             MoveSnakeInDirection(moves[0], moves[1]);
         }
-
+        private const double trashold = 0.5;
         private int[] DecodeMove(List<double> move) {
-            int xpos = (move[0] > 0.8) ? 1 : 0;
-            if(move[1] > 0.8) xpos--;
-            int ypos = (move[2] > 0.8) ? 1 : 0;
-            if (move[3] > 0.8) ypos--;
+            int xpos = 0;
+            if (move[0] > trashold) xpos++;
+            if (move[1] > trashold) xpos--;
+
+            int ypos = 0;
+            if (move[2] > trashold) ypos++;
+            if (move[3] > trashold) ypos--;
+
             return new int[] { xpos, ypos };
 
             /*

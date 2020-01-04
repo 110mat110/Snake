@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace Snake.Neural {
         public List<IInput> SecondLayer = new List<IInput>();
         public List<Neuron> OutputLayer = new List<Neuron>();
 
-        const int NoInputs = 6;
+        const int NoInputs = 2;
         const int NoOutputs = 4;
         public NeuralNetwork(int NoHiddenNeurons, Random randomizer) {
 
@@ -41,8 +42,7 @@ namespace Snake.Neural {
             }
         }
 
-        public NeuralNetwork(NeuralNetwork n1, NeuralNetwork n2) {
-            Random rng = new Random();
+        public NeuralNetwork(NeuralNetwork n1, NeuralNetwork n2, Random rng, double MutateRatio) {
             int NoHiddenNeurons = n1.SecretLayer.Count;
 
             for (int i = 0; i < NoInputs; i++) {
@@ -54,7 +54,7 @@ namespace Snake.Neural {
             for (int i = 0; i < NoHiddenNeurons; i++) {
                 List<IInput> inputs = new List<IInput>();
                 foreach (var inneuron in inputNeurons) {
-                    inputs.Add(new Connection(MutateWeight((Connection)n1.FirstLayer[j], (Connection)n2.FirstLayer[j], rng), inneuron));
+                    inputs.Add(new Connection(MutateWeight((Connection)n1.FirstLayer[j], (Connection)n2.FirstLayer[j], rng, MutateRatio), inneuron));
                     j++;
                 }
                 SecretLayer.Add(new Neuron(inputs));
@@ -64,7 +64,7 @@ namespace Snake.Neural {
             for (int i = 0; i < NoOutputs; i++) {
                 List<IInput> inputs = new List<IInput>();
                 foreach (var inneuron in SecretLayer) {
-                    inputs.Add(new Connection(MutateWeight((Connection)n1.SecondLayer[j], (Connection)n2.SecondLayer[j],rng), inneuron));
+                    inputs.Add(new Connection(MutateWeight((Connection)n1.SecondLayer[j], (Connection)n2.SecondLayer[j],rng, MutateRatio), inneuron));
                     j++;
                 }
                 OutputLayer.Add(new Neuron(inputs));
@@ -72,14 +72,20 @@ namespace Snake.Neural {
             }
         }
 
-        private double MutateWeight(Connection c1, Connection c2, Random randomizer) {
+        private double MutateWeight(Connection c1, Connection c2, Random randomizer, double MutateRatio) {
             double ratio = randomizer.NextDouble();
-            return c1.Weight * ratio + c2.Weight * (1 - ratio) + randomizer.NextDouble()*0.05 - 0.025;
+            return c1.Weight * ratio + c2.Weight * (1 - ratio) + randomizer.NextDouble()* MutateRatio - MutateRatio/2;
         }
         
         public List<double> DoNeuralStuff(List<double> inputs) {
             if (inputs.Count != this.inputs.Count) throw new IndexOutOfRangeException("input length is not same than input count");
+            /*
+            for (int i = 0; i < inputs.Count; i++) {
+                Debug.Write(inputs[i] + " ");
+            }
 
+            Debug.Write(">> "); 
+            */
             for(int i=0; i< inputs.Count; i++) {
                 this.inputs[i].Value = inputs[i];
             }
@@ -87,7 +93,12 @@ namespace Snake.Neural {
             List<double> output = new List<double>();
             for (int i = 0; i < OutputLayer.Count; i++)
                 output.Add(OutputLayer[i].GetOutput());
-
+            /*
+            for(int i=0; i< output.Count; i++) {
+                Debug.Write(output[i] + " ");
+            }
+            Debug.WriteLine("");
+            */
             return output;
         }
     }
