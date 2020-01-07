@@ -194,5 +194,9 @@ namespace Snake {
                 }
             }
         }
+
+        public SnakeObject GetBestSnake() {
+            return SnakeList.OrderByDescending(x => x.Fitness).First();
+        }
     }
 }

@@ -85,8 +85,11 @@ namespace Snake {
             }
 
             //Draw game
-            if(gameTicker.IsEnabled)
+            if (gameTicker.IsEnabled) {
                 DrawGame(gameList[0]);
+                DrawNeuralNetwork(gameList[0].GetBestSnake().Brain);
+            }
+
 
             if (!AtLeastOneGamesActive)
                 ResetGame();
@@ -180,6 +183,64 @@ namespace Snake {
             }
 
             gameTicker.Start();
+        }
+
+        private void DrawNeuralNetwork(NeuralNetwork nn) {
+
+            neuralCanvas.Children.Clear();
+            int height = nn.NeuronLayers.Max(x => x.Count);
+            int width = nn.NeuronLayers.Count;
+
+            double verticalDifference = (neuralCanvas.Height-20) / height;
+            double horizontalDifference = (neuralCanvas.Width - 20) / width;
+            int i = 0;
+
+            foreach(var layer in nn.NeuronLayers) {
+                int j = 0;
+                foreach (var neuron in layer) {
+                    var rect = CreateNeuron(neuron);
+                    Canvas.SetLeft(rect, j*horizontalDifference);
+                    Canvas.SetTop(rect, i*verticalDifference);
+                    neuralCanvas.Children.Add(rect);
+                    j++;
+                }
+                i++;
+            }
+        }
+
+        private UIElement CreateNeuron(Neuron neuron) {
+            //create circle with this atributes
+            var rect = new Ellipse {
+                Stroke = new SolidColorBrush(Colors.Black),
+                Fill = new SolidColorBrush(new Color() {
+                    A = (byte)(255 * neuron.LastOutput),
+                    R = 0,
+                    G = 255,
+                    B = 0,    
+                }),
+                Width = 10,
+                Height = 10,
+                StrokeThickness = 1
+            };
+            return rect;
+        }
+
+        private UIElement CreateConnection(Connection c, double X1, double X2, double Y1, double Y2) {
+            var line = new Line {
+                Stroke = new SolidColorBrush(new Color() {
+                    A = 255,
+                    R = (byte)(255 * c.Weight),
+                    G = 0,
+                    B = (byte)(255 - (255 * c.Weight)),
+                }),
+                X1 = X1,
+                X2 = X2,
+                Y1 =Y1,
+                Y2 = Y2,
+                StrokeThickness = 2
+            };
+            //Set rectangle and align it by top left corner
+            return line;
         }
     }
 }
