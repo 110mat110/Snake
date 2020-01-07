@@ -23,6 +23,7 @@ namespace Snake {
         private int penalty;
         private int AppleTimeSpan = -1;
         private int NoRounds = -1;
+        private double treshold;
 
         public int BestFitness { get {
                 return GetAllSnakes().Max(x => x.Fitness);
@@ -34,13 +35,13 @@ namespace Snake {
         public int GameRounds { get; private set; }
 
         /*Game strategy when game ends when noone touch apple for long time*/
-        public Game(int gameWidth, int gameHeight, int NoSnakes, List<SnakeObject> snakes, Random random, double MutateRatio, int penalty, int AppleTimeSpan, int NoRounds) {
+        public Game(int gameWidth, int gameHeight, int NoSnakes, List<SnakeObject> snakes, Random random, double MutateRatio, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             GameRounds = 0;
             this.random = random;
             this.penalty = penalty;
-
+            this.treshold = treshold;
             this.AppleTimeSpan = AppleTimeSpan;
             this.NoRounds = NoRounds;
 
@@ -49,7 +50,7 @@ namespace Snake {
             Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
         }
 
-        public Game(int gameWidth, int gameHeight, int NoSnakes, Random random, int penalty, int AppleTimeSpan, int NoRounds) {
+        public Game(int gameWidth, int gameHeight, int NoSnakes, Random random, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             GameRounds = 0;
@@ -57,25 +58,42 @@ namespace Snake {
             this.NoRounds = NoRounds;
             this.random = random;
             this.penalty = penalty;
+            this.treshold = treshold;
+
             for (int i = 0; i < NoSnakes; i++)
-                SnakeList.Add(new SnakeObject(GameWidth, GameHeight, random, penalty));
+                SnakeList.Add(new SnakeObject(GameWidth, GameHeight, random, penalty, treshold));
 
             //set apple default canvas position
             //create new apple
             Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
         }
-
-
         /*END Game strategy when game ends when noone touch apple for long time*/
+
+            //Strategy, when we add presorted snakes to game
+        public Game(int gameWidth, int gameHeight, List<SnakeObject> snakes, Random random, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
+            GameWidth = gameWidth;
+            GameHeight = gameHeight;
+            GameRounds = 0;
+            this.random = random;
+            this.penalty = penalty;
+            this.treshold = treshold;
+            this.AppleTimeSpan = AppleTimeSpan;
+            this.NoRounds = NoRounds;
+
+            SnakeList = snakes;
+
+            Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
+        }
+
         private void MutateSnakes(int noSnakes, List<SnakeObject> snakes, Random rng, double MutateRatio) {
             List<SnakeObject> newSnakes = new List<SnakeObject>();
-            for(int i=0; i<noSnakes/2; i++)
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, snakes[i].Brain, penalty));            
+            for(int i=0; i<Math.Round(noSnakes/2 + 0.1); i++)
+                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, snakes[i].Brain, penalty, treshold));            
             
             for(int i=1; i<snakes.Count; i++) {
                 NeuralNetwork brain = new NeuralNetwork(snakes[i - 1].Brain, snakes[i].Brain, rng, MutateRatio);
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty));
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty));
+                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty, treshold));
+                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty, treshold));
             }
             snakes.Clear();
 
@@ -196,7 +214,9 @@ namespace Snake {
         }
 
         public SnakeObject GetBestSnake() {
-            return SnakeList.OrderByDescending(x => x.Fitness).First();
+            return SnakeList.Count != 0
+                ? SnakeList.OrderByDescending(x => x.Fitness).First()
+                : GetAllSnakes().OrderByDescending(x => x.Fitness).First();
         }
     }
 }

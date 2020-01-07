@@ -16,40 +16,43 @@ namespace Snake {
 
         public bool Active { get; private set; }
 
-        public int Fitness { get { if (Active) return CurrentSnakeBlocks.Count; else return CurrentSnakeBlocks.Count - Penalty; } }
+        public int Fitness { get { return Active ? CurrentSnakeBlocks.Count : CurrentSnakeBlocks.Count - Penalty; } }
         public NeuralNetwork Brain;
 
         public int Penalty { private get; set; }
-
-        private int LastMoveX = 0;
+        public double Treshold { private get; set; }
+        private int LastMoveX = 1;
         private int LastMoveY = 0;
 
-        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition, Random random, int penalty) {
+        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition, Random random, int penalty, double treshold) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(firstPosition));
             Penalty = penalty;
+            Treshold = treshold;
 
-            Brain = new NeuralNetwork(new List<int>() { 5 }, random);
+            Brain = new NeuralNetwork(new List<int>() { 8, 2 }, random);
         }
 
-        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, int penalty) {
+        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, int penalty, double treshold) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
             Penalty = penalty;
+            Treshold = treshold;
 
-            Brain = new NeuralNetwork(new List<int>() { 5 }, randomizer);
+            Brain = new NeuralNetwork(new List<int>() { 8, 2 }, randomizer);
         }
 
-        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, NeuralNetwork brain, int penalty) {
+        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, NeuralNetwork brain, int penalty, double treshold) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
             Penalty = penalty;
+            Treshold = treshold;
 
             Brain = brain;
         }
@@ -111,18 +114,17 @@ namespace Snake {
                     inputs.Add((x.Y - CurrentSnakeBlocks[0].ActualPosition.Y) / GameWidth);
                 }
             }
-            var moves = DecodeMove(Brain.DoNeuralStuff(inputs));
+            var moves = DecodeMove(Brain.DoNeuralStuff(inputs), Treshold);
 
             MoveSnakeInDirection(moves);
         }
-        private const double threshold = 0.5;
-        private Vector DecodeMove(List<double> move) {
+        private Vector DecodeMove(List<double> move, double threshold) {
             //only one way and only if there is enough strength
             if (move.Any(x => x > threshold)) {
-                if (move.Max() - 0.01 < move[0]) return new Vector(+1, 0);
-                if (move.Max() - 0.01 < move[1]) return new Vector(-1, 0);
-                if (move.Max() - 0.01 < move[2]) return new Vector(0, +1);
-                if (move.Max() - 0.01 < move[3]) return new Vector(0, -1);
+                if (move.Max() - 1e-5 < move[0]) return new Vector(+1, 0);
+                if (move.Max() - 1e-5 < move[1]) return new Vector(-1, 0);
+                if (move.Max() - 1e-5 < move[2]) return new Vector(0, +1);
+                if (move.Max() - 1e-5 < move[3]) return new Vector(0, -1);
             }
             return new Vector(0, 0);
 

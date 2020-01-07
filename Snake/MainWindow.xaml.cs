@@ -26,19 +26,20 @@ namespace Snake {
 
         private const int GameWidth = 60;
         private const int GameHeight = 30;
-        private const int NoSnakes = 5;
+        private const int NoSnakes = 1;
         private const int NoGamesAtOnce = 1000;
         private const int penalty = 5;
         DispatcherTimer gameTicker;
         //set to -1 when using only apple strategy
-        private const int NoRounds = 2000;
+        private const int NoRounds = 20000;
         //set to -1 to have static round length;
         private const int AppleTimeSpan = 200;
         private int ActualRound = 0;
-        private const double MutateRatio = 0.4;
+        private const double MutateRatio = 0.2;
+        private const double Treshold = 0.6;
 
         private Random globalRandom;
-        private int skiprounds = 5000;
+        private int skiprounds = 100;
 
         public MainWindow() {
             InitializeComponent();
@@ -46,7 +47,7 @@ namespace Snake {
             RoundProgress.Maximum = NoRounds;
             globalRandom = new Random();
             for (int i =0; i<NoGamesAtOnce; i++)
-                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom, penalty, AppleTimeSpan, NoRounds));
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom, penalty, AppleTimeSpan, NoRounds, Treshold));
 
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             gameTicker = new DispatcherTimer {
@@ -71,8 +72,14 @@ namespace Snake {
             foreach (var game in gameList) {
                 //if (game.GameRounds > NoRounds) {
                 if(NoRounds > -1) {
-                    if (game.RunningSnakes <= 1 || game.GameRounds > NoRounds) {
-                        game.Active = false;
+                    if (game.RunningSnakes > 2) {
+                        if (game.RunningSnakes <= 1 || game.GameRounds > NoRounds) {
+                            game.Active = false;
+                        }
+                    } else {
+                        if (game.GameRounds > NoRounds) {
+                            game.Active = false;
+                        }
                     }
                 } else {
                     if (game.RunningSnakes <= 1) {
@@ -122,8 +129,16 @@ namespace Snake {
 
             //MessageBox.Show("game ended! best fitness is " + game.BestFitness);
             gameList.Clear();
+
+            var snakes = Mutator.MutateForOneSnakeGame(NoGamesAtOnce, allSnakes, globalRandom, MutateRatio, GameWidth, GameHeight, penalty, Treshold);
+
+            foreach (var snake in snakes) {
+                gameList.Add(new Game(GameWidth, GameHeight, new List<SnakeObject>() { snake }, globalRandom, penalty, AppleTimeSpan, NoRounds, Treshold));
+            }
+            /*
             for(int i = 0; i<NoGamesAtOnce; i++)
-                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, allSnakes.OrderByDescending(x => x.Fitness).Take(NoSnakes).ToList(), globalRandom, MutateRatio, penalty, AppleTimeSpan, NoRounds));
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, allSnakes.OrderByDescending(x => x.Fitness).Take(NoSnakes).ToList(), globalRandom, MutateRatio, penalty, AppleTimeSpan, NoRounds, Treshold));
+            */
         }
 
         private void DrawGame(Game game) {
@@ -191,38 +206,60 @@ namespace Snake {
             int height = nn.NeuronLayers.Max(x => x.Count);
             int width = nn.NeuronLayers.Count;
 
-            double verticalDifference = (neuralCanvas.Height-20) / height;
-            double horizontalDifference = (neuralCanvas.Width - 20) / width;
+            double verticalDifference = (neuralCanvas.Height) / height;
+            double horizontalDifference = (neuralCanvas.Width - 80) / width;
             int i = 0;
 
-            foreach(var layer in nn.NeuronLayers) {
+            foreach (var layer in nn.Connections) {
+                foreach (Connection connection in layer) {
+                    var rect = CreateConnection(connection, i * verticalDifference +5, (i + 1) * verticalDifference + 5, connection.DestinationNeuronIndex * horizontalDifference + 5, connection.SourceNeuronIndex * horizontalDifference + 5);
+                    neuralCanvas.Children.Add(rect);
+                }
+                i++;
+            }
+            i = 0;
+            foreach (var layer in nn.NeuronLayers) {
                 int j = 0;
                 foreach (var neuron in layer) {
                     var rect = CreateNeuron(neuron);
-                    Canvas.SetLeft(rect, j*horizontalDifference);
-                    Canvas.SetTop(rect, i*verticalDifference);
+                    Canvas.SetTop(rect, j*horizontalDifference);
+                    Canvas.SetLeft(rect, i*verticalDifference);
                     neuralCanvas.Children.Add(rect);
                     j++;
                 }
                 i++;
             }
+            i = 0;
+            foreach (var neuron in nn.NeuronLayers[nn.NeuronLayers.Count-1]) {
+                var rect = CreateText(neuron);
+                Canvas.SetLeft(rect, nn.NeuronLayers.Count * horizontalDifference);
+                Canvas.SetTop(rect, i * verticalDifference);
+                neuralCanvas.Children.Add(rect);
+                i++;
+            }
+
         }
 
         private UIElement CreateNeuron(Neuron neuron) {
+            var color = neuron.LastOutput >= Treshold ? Colors.Green : Colors.White;
+
             //create circle with this atributes
             var rect = new Ellipse {
                 Stroke = new SolidColorBrush(Colors.Black),
-                Fill = new SolidColorBrush(new Color() {
-                    A = (byte)(255 * neuron.LastOutput),
-                    R = 0,
-                    G = 255,
-                    B = 0,    
-                }),
+                Fill = new SolidColorBrush(color),
                 Width = 10,
                 Height = 10,
                 StrokeThickness = 1
             };
             return rect;
+        }
+        private UIElement CreateText(Neuron neuron) {
+
+            TextBlock textBlock = new TextBlock();
+            textBlock.Text = string.Format("{0:0.##}", neuron.LastOutput);
+
+            textBlock.Foreground = new SolidColorBrush(Colors.Black);
+            return textBlock;
         }
 
         private UIElement CreateConnection(Connection c, double X1, double X2, double Y1, double Y2) {

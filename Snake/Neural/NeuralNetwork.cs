@@ -17,7 +17,7 @@ namespace Snake.Neural {
         */
         public List<List<IInput>> Connections = new List<List<IInput>>();
         public List<List<Neuron>> NeuronLayers = new List<List<Neuron>>();
-        const int NoInputs = 6;
+        const int NoInputs = 2;
         const int NoOutputs = 4;
 
 
@@ -35,12 +35,12 @@ namespace Snake.Neural {
                 List<Neuron> neurons = new List<Neuron>();
                 List<IInput> connections = new List<IInput>();
                 for (int i = 0; i < NoHiddenNeurons[layer]; i++) {
-                    foreach (var neuron in NeuronLayers[layer]) {
-                        connections.Add(new Connection(randomizer.NextDouble(), neuron));
+                    List<IInput> localConnections = new List<IInput>();
+                    for(int j=0; j<NeuronLayers[layer].Count; j++){
+                        localConnections.Add(new Connection(randomizer.NextDouble(), NeuronLayers[layer][j], i, j ));
                     }
-
-                    neurons.Add(new Neuron(connections));
-
+                    neurons.Add(new Neuron(localConnections));
+                    connections.AddRange(localConnections);
                 }
                 Connections.Add(connections);
                 NeuronLayers.Add(neurons);
@@ -65,14 +65,13 @@ namespace Snake.Neural {
             for (int layer = 0; layer < NoHiddenNeurons.Count; layer++) {
                 List<Neuron> neurons = new List<Neuron>();
                 List<IInput> connections = new List<IInput>();
-                int j = 0;
                 for (int i = 0; i < NoHiddenNeurons[layer]; i++) {
-                    foreach (var neuron in NeuronLayers[layer]) {
-                        connections.Add(new Connection(MutateWeight((Connection)n1.Connections[layer][j], (Connection)n2.Connections[layer][j], rng, MutateRatio), neuron));
+                    List<IInput> localConnections = new List<IInput>();
+                    for (int j = 0; j < NeuronLayers[layer].Count; j++) {
+                        localConnections.Add(new Connection(MutateWeight((Connection)n1.Connections[layer][i*j], (Connection)n2.Connections[layer][i*j], rng, MutateRatio), NeuronLayers[layer][j],i,j));
                     }
-
-                    neurons.Add(new Neuron(connections));
-
+                    neurons.Add(new Neuron(localConnections));
+                    connections.AddRange(localConnections);
                 }
                 Connections.Add(connections);
                 NeuronLayers.Add(neurons);

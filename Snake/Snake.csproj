@@ -57,6 +57,7 @@
     </ApplicationDefinition>
     <Compile Include="Apple.cs" />
     <Compile Include="Game.cs" />
+    <Compile Include="Mutator.cs" />
     <Compile Include="Neural\Connections.cs" />
     <Compile Include="Neural\IInput.cs" />
     <Compile Include="Neural\Input.cs" />
