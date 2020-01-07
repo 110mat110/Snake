@@ -16,37 +16,46 @@ namespace Snake {
 
         public bool Active { get; private set; }
 
-        public int Fitness { get { return CurrentSnakeBlocks.Count; } }
+        public int Fitness { get { if (Active) return CurrentSnakeBlocks.Count; else return CurrentSnakeBlocks.Count - Penalty; } }
         public NeuralNetwork Brain;
+
+        public int Penalty { private get; set; }
 
         private int LastMoveX = 0;
         private int LastMoveY = 0;
 
-        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition, Random random) {
+        public SnakeObject(int gameWidth, int gameHeight, Point firstPosition, Random random, int penalty) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(firstPosition));
+            Penalty = penalty;
 
-            Brain = new NeuralNetwork(5, random);
+            Brain = new NeuralNetwork(new List<int>() { 5 }, random);
         }
 
-        public SnakeObject(int gameWidth, int gameHeight, Random randomizer) {
+        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, int penalty) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
+            Penalty = penalty;
 
-            Brain = new NeuralNetwork(5, randomizer);
+            Brain = new NeuralNetwork(new List<int>() { 5 }, randomizer);
         }
 
-        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, NeuralNetwork brain) {
+        public SnakeObject(int gameWidth, int gameHeight, Random randomizer, NeuralNetwork brain, int penalty) {
             Active = true;
             GameWidth = gameWidth;
             GameHeight = gameHeight;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, GameWidth), randomizer.Next(0, GameHeight))));
+            Penalty = penalty;
 
             Brain = brain;
+        }
+
+        public void MoveSnakeInDirection(Vector directionVector) {
+            MoveSnakeInDirection((int)directionVector.X, (int)directionVector.Y);
         }
 
         public void MoveSnakeInDirection(int xdirection, int ydirection) {
@@ -86,7 +95,7 @@ namespace Snake {
             MoveSnakeInDirection(randomizer.Next(3) - 1, randomizer.Next(3) - 1);
         }
 
-        public void UseBrainToMove(List<SnakeObject> snakes, List<Apple> apples) {
+        public void UseBrainToMove(List<SnakeObject> snakes, List<Apple> apples, object locker) {
             Point nearestApple = FindNearestApple(apples);
             var nearestSnakes = FindXNearestSnakes(snakes, 2);
 
@@ -96,27 +105,26 @@ namespace Snake {
                 (nearestApple.Y- CurrentSnakeBlocks[0].ActualPosition.Y)/GameWidth,
             };
             //No need for other snakes
-            /*
-            foreach(var x in nearestSnakes) {
-                inputs.Add((x.X - CurrentSnakeBlocks[0].ActualPosition.X)/GameHeight);
-                inputs.Add((x.Y - CurrentSnakeBlocks[0].ActualPosition.Y)/GameWidth);
+            lock (locker) {
+                foreach (var x in nearestSnakes) {
+                    inputs.Add((x.X - CurrentSnakeBlocks[0].ActualPosition.X) / GameHeight);
+                    inputs.Add((x.Y - CurrentSnakeBlocks[0].ActualPosition.Y) / GameWidth);
+                }
             }
-            */
             var moves = DecodeMove(Brain.DoNeuralStuff(inputs));
 
-            MoveSnakeInDirection(moves[0], moves[1]);
+            MoveSnakeInDirection(moves);
         }
-        private const double trashold = 0.5;
-        private int[] DecodeMove(List<double> move) {
-            int xpos = 0;
-            if (move[0] > trashold) xpos++;
-            if (move[1] > trashold) xpos--;
-
-            int ypos = 0;
-            if (move[2] > trashold) ypos++;
-            if (move[3] > trashold) ypos--;
-
-            return new int[] { xpos, ypos };
+        private const double threshold = 0.5;
+        private Vector DecodeMove(List<double> move) {
+            //only one way and only if there is enough strength
+            if (move.Any(x => x > threshold)) {
+                if (move.Max() - 0.01 < move[0]) return new Vector(+1, 0);
+                if (move.Max() - 0.01 < move[1]) return new Vector(-1, 0);
+                if (move.Max() - 0.01 < move[2]) return new Vector(0, +1);
+                if (move.Max() - 0.01 < move[3]) return new Vector(0, -1);
+            }
+            return new Vector(0, 0);
 
             /*
             List<int> outputs = new List<int>();

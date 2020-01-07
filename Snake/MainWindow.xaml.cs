@@ -27,20 +27,26 @@ namespace Snake {
         private const int GameWidth = 60;
         private const int GameHeight = 30;
         private const int NoSnakes = 5;
-        private const int NoGames = 200;
+        private const int NoGamesAtOnce = 1000;
+        private const int penalty = 5;
         DispatcherTimer gameTicker;
+        //set to -1 when using only apple strategy
         private const int NoRounds = 2000;
+        //set to -1 to have static round length;
+        private const int AppleTimeSpan = 200;
         private int ActualRound = 0;
-        private const double MutateRatio = 1;
+        private const double MutateRatio = 0.4;
 
         private Random globalRandom;
-        private int skiprounds = 200;
+        private int skiprounds = 5000;
 
         public MainWindow() {
             InitializeComponent();
+
+            RoundProgress.Maximum = NoRounds;
             globalRandom = new Random();
-            for (int i =0; i<NoGames; i++)
-                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom));
+            for (int i =0; i<NoGamesAtOnce; i++)
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom, penalty, AppleTimeSpan, NoRounds));
 
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             gameTicker = new DispatcherTimer {
@@ -64,8 +70,14 @@ namespace Snake {
 
             foreach (var game in gameList) {
                 //if (game.GameRounds > NoRounds) {
-                if (game.RunningSnakes <= 1 || game.GameRounds> NoRounds) {
-                    game.Active = false;
+                if(NoRounds > -1) {
+                    if (game.RunningSnakes <= 1 || game.GameRounds > NoRounds) {
+                        game.Active = false;
+                    }
+                } else {
+                    if (game.RunningSnakes <= 1) {
+                        game.Active = false;
+                    }
                 }
 
                 if (game.Active)
@@ -81,7 +93,7 @@ namespace Snake {
         }
 
         private async Task FastLoop() {
-
+            RoundProgress.Maximum = NoRounds;
             List<Task> tasks = new List<Task>();
             foreach (var game in gameList) {
                     tasks.Add(game.FastLoop(NoRounds));
@@ -90,6 +102,7 @@ namespace Snake {
 
             Debug.WriteLine("Rounds: " + gameList[0].GameRounds);
             ResetGame();
+            RoundProgress.Value = ActualRound;
         }
 
         private void ResetGame() {
@@ -106,8 +119,8 @@ namespace Snake {
 
             //MessageBox.Show("game ended! best fitness is " + game.BestFitness);
             gameList.Clear();
-            for(int i = 0; i<NoGames; i++)
-                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, allSnakes.OrderByDescending(x => x.Fitness).Take(NoSnakes).ToList(), globalRandom, MutateRatio));
+            for(int i = 0; i<NoGamesAtOnce; i++)
+                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, allSnakes.OrderByDescending(x => x.Fitness).Take(NoSnakes).ToList(), globalRandom, MutateRatio, penalty, AppleTimeSpan, NoRounds));
         }
 
         private void DrawGame(Game game) {
@@ -121,6 +134,7 @@ namespace Snake {
             foreach(var apple in game.GetApplesDots())
             GameCanvas.Children.Add(CreateApple(apple.Position));
 
+            RoundProgress.Value = game.GameRounds;
         }
 
         private UIElement CreateSnakerectangle(Point directions) {
