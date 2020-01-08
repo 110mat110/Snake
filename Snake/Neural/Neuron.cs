@@ -17,12 +17,12 @@ namespace Snake.Neural {
 
             foreach (var i in Inputs)
                 x += i.GetValue();
-            LastOutput = ActivationFunction(x/Inputs.Count);
+            x += -1;
+            LastOutput = ActivationFunction(x);
             return LastOutput;
        }
-
         private double ActivationFunction(double x) {
-            return 1 / (1 + Math.Exp(-x));
+            return 1 / (1 + Math.Exp(-0.75*x));
         }
     }
 }

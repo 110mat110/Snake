@@ -32,7 +32,7 @@ namespace Snake {
             Penalty = penalty;
             Treshold = treshold;
 
-            Brain = new NeuralNetwork(new List<int>() { 8, 2 }, random);
+            Brain = new NeuralNetwork(new List<int>() { 10 }, random);
         }
 
         public SnakeObject(int gameWidth, int gameHeight, Random randomizer, int penalty, double treshold) {
@@ -43,7 +43,7 @@ namespace Snake {
             Penalty = penalty;
             Treshold = treshold;
 
-            Brain = new NeuralNetwork(new List<int>() { 8, 2 }, randomizer);
+            Brain = new NeuralNetwork(new List<int>() { 10 }, randomizer);
         }
 
         public SnakeObject(int gameWidth, int gameHeight, Random randomizer, NeuralNetwork brain, int penalty, double treshold) {
@@ -98,7 +98,35 @@ namespace Snake {
             MoveSnakeInDirection(randomizer.Next(3) - 1, randomizer.Next(3) - 1);
         }
 
-        public void UseBrainToMove(List<SnakeObject> snakes, List<Apple> apples, object locker) {
+        public void UseBinaryBrainToMove(List<Apple> apples, object locker) {
+            bool[] inputs = new bool[] { false, false, false, false };
+            if (apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y > CurrentSnakeBlocks[0].ActualPosition.Y).Count() > 0) inputs[0] = true;
+            if (apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y < CurrentSnakeBlocks[0].ActualPosition.Y).Count() > 0) inputs[1] = true;
+            if (apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X > CurrentSnakeBlocks[0].ActualPosition.X).Count() > 0) inputs[2] = true;
+            if (apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X < CurrentSnakeBlocks[0].ActualPosition.X).Count() > 0) inputs[3] = true;
+
+            var moves = DecodeMove(Brain.DoNeuralStuff(inputs), Treshold);
+
+            MoveSnakeInDirection(moves);
+        }
+
+        public void UseBrainToMove(List<Apple> apples, object locker) {
+            double[] inputs = new double[] { 0, 0, 0, 0 };
+            if (apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y > CurrentSnakeBlocks[0].ActualPosition.Y).Count() > 0)
+                inputs[0] = CurrentSnakeBlocks[0].ActualPosition.Y - apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y > CurrentSnakeBlocks[0].ActualPosition.Y).First().Position.Y;
+            if (apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y < CurrentSnakeBlocks[0].ActualPosition.Y).Count() > 0)
+                inputs[1] = apples.Where(x => (x.Position.X == CurrentSnakeBlocks[0].ActualPosition.X) && x.Position.Y < CurrentSnakeBlocks[0].ActualPosition.Y).First().Position.Y - CurrentSnakeBlocks[0].ActualPosition.Y;
+            if (apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X > CurrentSnakeBlocks[0].ActualPosition.X).Count() > 0)
+                inputs[2] = CurrentSnakeBlocks[0].ActualPosition.X - apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X > CurrentSnakeBlocks[0].ActualPosition.X).First().Position.X;
+            if (apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X < CurrentSnakeBlocks[0].ActualPosition.X).Count() > 0)
+                inputs[3] = apples.Where(x => (x.Position.Y == CurrentSnakeBlocks[0].ActualPosition.Y) && x.Position.X < CurrentSnakeBlocks[0].ActualPosition.X).First().Position.X- CurrentSnakeBlocks[0].ActualPosition.X ;
+
+            var moves = DecodeMove(Brain.DoNeuralStuff(inputs.ToList()), Treshold);
+
+            MoveSnakeInDirection(moves);
+        }
+
+        private void UseBrainToMove(List<SnakeObject> snakes, List<Apple> apples, object locker) {
             Point nearestApple = FindNearestApple(apples);
             var nearestSnakes = FindXNearestSnakes(snakes, 2);
 
@@ -120,24 +148,20 @@ namespace Snake {
         }
         private Vector DecodeMove(List<double> move, double threshold) {
             //only one way and only if there is enough strength
-            if (move.Any(x => x > threshold)) {
-                if (move.Max() - 1e-5 < move[0]) return new Vector(+1, 0);
-                if (move.Max() - 1e-5 < move[1]) return new Vector(-1, 0);
-                if (move.Max() - 1e-5 < move[2]) return new Vector(0, +1);
-                if (move.Max() - 1e-5 < move[3]) return new Vector(0, -1);
-            }
-            return new Vector(0, 0);
+            int index = move.IndexOf(move.Max());
 
-            /*
-            List<int> outputs = new List<int>();
-            foreach(var m in move) {
-                int o = 0;
-                if (m < 0.4) o = -1; 
-                if (m > 0.6) o = +1;
-                outputs.Add(o);
+            if (move[index] > Treshold) {
+                switch (index) {
+                    case 0: return new Vector(+1, 0);
+                    case 1: return new Vector(-1, 0);
+                    case 2: return new Vector(0, 1);
+                    case 3: return new Vector(0, -1);
+
+                    default: return new Vector(0, 0);
+                }
             }
-            return outputs;
-            */
+
+            return new Vector(0, 0);
         }
 
         private Point FindNearestApple(List<Apple> apples) {
@@ -175,6 +199,17 @@ namespace Snake {
                         if (Point.Equals(this.CurrentSnakeBlocks[0].ActualPosition, snakeBlock.ActualPosition)) {
                             this.Active = false;
                             foreach(var sb in this.CurrentSnakeBlocks) {
+                                apples.Add(new Apple(sb.ActualPosition));
+                            }
+                        }
+                    }
+                }
+                if (s.Equals(this)) {
+                    for(int i=1; i<s.CurrentSnakeBlocks.Count; i++) {
+                        //if positions are the same that means, that snake crashed
+                        if (Point.Equals(this.CurrentSnakeBlocks[0].ActualPosition, s.CurrentSnakeBlocks[i].ActualPosition)) {
+                            this.Active = false;
+                            foreach (var sb in this.CurrentSnakeBlocks) {
                                 apples.Add(new Apple(sb.ActualPosition));
                             }
                         }

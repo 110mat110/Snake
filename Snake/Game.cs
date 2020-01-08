@@ -18,6 +18,7 @@ namespace Snake {
         private List<Apple> Apples = new List<Apple>();
         public int GameWidth { get; private set; }
         public int GameHeight { get; private set; }
+        public string EndCausing { get; private set; }
 
         private Random random;
         private int penalty;
@@ -143,10 +144,11 @@ namespace Snake {
             try {
                 object locker = new object();
                 foreach (SnakeObject s in SnakeList) {
-                    s.UseBrainToMove(SnakeList, Apples, locker);
+                    s.UseBrainToMove(Apples, locker);
                 }
             } catch (Exception ex) {
                 Debug.WriteLine(ex.Message);
+                EndCausing = "Exception " + ex.Message;
                 Active = false;
             }
         }
@@ -187,6 +189,7 @@ namespace Snake {
                 foreach (var A in Apples) {
                     A.LiveSpan++;
                     if (A.LiveSpan > AppleTimeSpan) {
+                        EndCausing = "Apple is too old";
                         this.Active = false;
                         return;
                     }
@@ -204,10 +207,12 @@ namespace Snake {
         private void DecideIfStillGame() {
             if (NoRounds > -1) {
                 if (RunningSnakes <= 1 || GameRounds > NoRounds) {
+                    EndCausing = "Basic decision 1st";
                     Active = false;
                 }
             } else {
                 if (RunningSnakes <= 1) {
+                    EndCausing = "Basic decision 2nd";
                     Active = false;
                 }
             }

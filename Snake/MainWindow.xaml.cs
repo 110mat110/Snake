@@ -27,7 +27,7 @@ namespace Snake {
         private const int GameWidth = 60;
         private const int GameHeight = 30;
         private const int NoSnakes = 1;
-        private const int NoGamesAtOnce = 1000;
+        private const int NoGamesAtOnce = 100;
         private const int penalty = 5;
         DispatcherTimer gameTicker;
         //set to -1 when using only apple strategy
@@ -35,8 +35,8 @@ namespace Snake {
         //set to -1 to have static round length;
         private const int AppleTimeSpan = 200;
         private int ActualRound = 0;
-        private const double MutateRatio = 0.2;
-        private const double Treshold = 0.6;
+        private const double MutateRatio = 0.05;
+        private const double Treshold = 0;
 
         private Random globalRandom;
         private int skiprounds = 100;
@@ -56,12 +56,11 @@ namespace Snake {
             };
             gameTicker.Tick += GameTicker_TickAsync;
 
-            DrawGame(gameList[0]);
+            DrawGame(gameList.Where(x=> x.Active).First());
         }
 
         /*There you have to move snake and do everything*/
         private void GameTicker_TickAsync(object sender, EventArgs e) {
-            bool AtLeastOneGamesActive = false;
 
             foreach (var game in gameList) {
                 if (game.Active) {
@@ -71,7 +70,7 @@ namespace Snake {
 
             foreach (var game in gameList) {
                 //if (game.GameRounds > NoRounds) {
-                if(NoRounds > -1) {
+                if (NoRounds > -1) {
                     if (game.RunningSnakes > 2) {
                         if (game.RunningSnakes <= 1 || game.GameRounds > NoRounds) {
                             game.Active = false;
@@ -87,23 +86,23 @@ namespace Snake {
                     }
                 }
 
-                if (game.Active)
-                    AtLeastOneGamesActive = true;
+
             }
 
-            //Draw game
-            if (gameTicker.IsEnabled) {
-                DrawGame(gameList[0]);
-                DrawNeuralNetwork(gameList[0].GetBestSnake().Brain);
-            }
+            if (gameList.Where(x => x.Active).Count() > 0) {
+                if (gameTicker.IsEnabled) {
+                    DrawGame(gameList.Where(x => x.Active).First());
+                    DrawNeuralNetwork(gameList.Where(x => x.Active).First().GetBestSnake().Brain);
+                }
+                //Draw game
 
-
-            if (!AtLeastOneGamesActive)
+            }else
                 ResetGame();
+
         }
 
         private async Task FastLoop() {
-            RoundProgress.Maximum = NoRounds;
+
             List<Task> tasks = new List<Task>();
             foreach (var game in gameList) {
                     tasks.Add(game.FastLoop(NoRounds));
@@ -111,8 +110,10 @@ namespace Snake {
             await Task.WhenAll(tasks);
 
             Debug.WriteLine("Rounds: " + gameList[0].GameRounds);
+            RoundProgress.Maximum = skiprounds;
+            RoundProgress.Value = ActualRound % skiprounds;
             ResetGame();
-            RoundProgress.Value = ActualRound;
+
         }
 
         private void ResetGame() {
@@ -152,6 +153,7 @@ namespace Snake {
             foreach(var apple in game.GetApplesDots())
             GameCanvas.Children.Add(CreateApple(apple.Position));
 
+            RoundProgress.Maximum = NoRounds;
             RoundProgress.Value = game.GameRounds;
         }
 
@@ -192,6 +194,9 @@ namespace Snake {
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e) {
+
+            ((Button)sender).Content = "Fast Forward";
+
             gameTicker.Stop();
             while (ActualRound % skiprounds != 0) {
                 await FastLoop();
@@ -241,7 +246,12 @@ namespace Snake {
         }
 
         private UIElement CreateNeuron(Neuron neuron) {
-            var color = neuron.LastOutput >= Treshold ? Colors.Green : Colors.White;
+            Color color = new Color() {
+                A = 255,
+                R = (byte)((1 - neuron.LastOutput) * 255),
+                B = (byte)((1 - neuron.LastOutput) * 255),
+                G = 255
+            };
 
             //create circle with this atributes
             var rect = new Ellipse {
