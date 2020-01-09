@@ -11,10 +11,11 @@
             <RowDefinition Height="50"/>
             <RowDefinition Height="314*"/>
         </Grid.RowDefinitions>
-        <Label x:Name="BestFitenss"  Content="BF: 100" Width="100" Margin="54,0,1338,0"/>
-        <Label x:Name="Round"  Content="Round: 100" Width="100" Margin="159,0,1233,0"/>
-        <ProgressBar x:Name="RoundProgress" Width="200" Margin="302,0,990,0"/>
+        <Label x:Name="BestFitenss"  Content="BF: 100" Margin="132,0,1233,0"/>
+        <Label x:Name="Round"  Content="Round: 100" Margin="205,0,1165,0"/>
+        <ProgressBar x:Name="RoundProgress" Margin="372,0,892,0"/>
         <Button Content="Start" Width="100" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Click="Button_Click"/>
+        <Button Content="Settings" Width="100" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left" Click="Button_Click_1"  Margin="632,5,0,0"/>
         <Canvas x:Name="GameCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" Height="800" Width="1400" Grid.Row="1"/>
         <Canvas x:Name="neuralCanvas" HorizontalAlignment="Left" VerticalAlignment="Top" Height="200" Width="200" Grid.Row="1"/>
     </Grid>

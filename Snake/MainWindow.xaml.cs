@@ -1,4 +1,5 @@
 ﻿using Snake.Neural;
+using Snake.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,40 +24,38 @@ namespace Snake {
     public partial class MainWindow : Window {
 
         List<Game> gameList = new List<Game>();
-
-        private const int GameWidth = 60;
-        private const int GameHeight = 30;
-        private const int NoSnakes = 1;
-        private const int NoGamesAtOnce = 100;
-        private const int penalty = 5;
         DispatcherTimer gameTicker;
-        //set to -1 when using only apple strategy
-        private const int NoRounds = 20000;
-        //set to -1 to have static round length;
-        private const int AppleTimeSpan = 200;
+        DispatcherTimer manualTimer;
         private int ActualRound = 0;
-        private const double MutateRatio = 0.05;
-        private const double Treshold = 0;
 
         private Random globalRandom;
-        private int skiprounds = 100;
 
         public MainWindow() {
             InitializeComponent();
 
-            RoundProgress.Maximum = NoRounds;
+            RoundProgress.Maximum = Settings.Default.NoRounds;
             globalRandom = new Random();
-            for (int i =0; i<NoGamesAtOnce; i++)
-                gameList.Add(new Game(GameWidth, GameHeight, NoSnakes, globalRandom, penalty, AppleTimeSpan, NoRounds, Treshold));
+            for (int i =0; i<Settings.Default.NoGamesAtOnce; i++)
+                gameList.Add(new Game(globalRandom));
 
+            manualTimer = new DispatcherTimer {
+                Interval = new TimeSpan(0, 0, 0, 0, 50)
+            };
+            manualTimer.Tick += ManualTimer_Tick;
+            //manualTimer.Start();
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             gameTicker = new DispatcherTimer {
-                //Interval = new TimeSpan(0, 0, 0, 0, 50)
                 Interval = new TimeSpan(1)
             };
             gameTicker.Tick += GameTicker_TickAsync;
 
             DrawGame(gameList.Where(x=> x.Active).First());
+        }
+
+        private void ManualTimer_Tick(object sender, EventArgs e) {
+            gameList[0].GetBestSnake().TurnSnake(Keyboard.IsKeyDown(Key.Left), Keyboard.IsKeyDown(Key.Right));
+
+            DrawGame(gameList[0]);
         }
 
         /*There you have to move snake and do everything*/
@@ -70,13 +69,13 @@ namespace Snake {
 
             foreach (var game in gameList) {
                 //if (game.GameRounds > NoRounds) {
-                if (NoRounds > -1) {
+                if (Settings.Default.NoRounds > -1) {
                     if (game.RunningSnakes > 2) {
-                        if (game.RunningSnakes <= 1 || game.GameRounds > NoRounds) {
+                        if (game.RunningSnakes <= 1 || game.GameRounds > Settings.Default.NoRounds) {
                             game.Active = false;
                         }
                     } else {
-                        if (game.GameRounds > NoRounds) {
+                        if (game.GameRounds > Settings.Default.NoRounds) {
                             game.Active = false;
                         }
                     }
@@ -105,13 +104,13 @@ namespace Snake {
 
             List<Task> tasks = new List<Task>();
             foreach (var game in gameList) {
-                    tasks.Add(game.FastLoop(NoRounds));
+                    tasks.Add(game.FastLoop(Settings.Default.NoRounds));
             }
             await Task.WhenAll(tasks);
 
-            Debug.WriteLine("Rounds: " + gameList[0].GameRounds);
-            RoundProgress.Maximum = skiprounds;
-            RoundProgress.Value = ActualRound % skiprounds;
+            Debug.WriteLine("Rounds: " + gameList.OrderByDescending(x=>x.GetAllSnakes().Max(y=>y.Fitness)).First().GameRounds);
+            RoundProgress.Maximum = Settings.Default.skipRoudns;
+            RoundProgress.Value = ActualRound % Settings.Default.skipRoudns;
             ResetGame();
 
         }
@@ -131,10 +130,10 @@ namespace Snake {
             //MessageBox.Show("game ended! best fitness is " + game.BestFitness);
             gameList.Clear();
 
-            var snakes = Mutator.MutateForOneSnakeGame(NoGamesAtOnce, allSnakes, globalRandom, MutateRatio, GameWidth, GameHeight, penalty, Treshold);
+            var snakes = Mutator.MutateForOneSnakeGame(allSnakes, globalRandom);
 
             foreach (var snake in snakes) {
-                gameList.Add(new Game(GameWidth, GameHeight, new List<SnakeObject>() { snake }, globalRandom, penalty, AppleTimeSpan, NoRounds, Treshold));
+                gameList.Add(new Game(new List<SnakeObject>() { snake }, globalRandom, false));
             }
             /*
             for(int i = 0; i<NoGamesAtOnce; i++)
@@ -153,14 +152,14 @@ namespace Snake {
             foreach(var apple in game.GetApplesDots())
             GameCanvas.Children.Add(CreateApple(apple.Position));
 
-            RoundProgress.Maximum = NoRounds;
+            RoundProgress.Maximum = Settings.Default.NoRounds;
             RoundProgress.Value = game.GameRounds;
         }
 
         private UIElement CreateSnakerectangle(Point directions) {
             //To universaly determine one rectangle size
-            var width = GameCanvas.Width / GameWidth;
-            var height = GameCanvas.Height / GameHeight;
+            var width = GameCanvas.Width / Settings.Default.GameWidth;
+            var height = GameCanvas.Height / Settings.Default.GameHeight;
             //create rectangle with this atributes
             var rect = new Rectangle {
                 Stroke = new SolidColorBrush(Colors.Black),
@@ -177,8 +176,8 @@ namespace Snake {
 
         private UIElement CreateApple(Point directions) {
             //To universaly determine one rectangle size
-            var width = GameCanvas.Width / GameWidth;
-            var height = GameCanvas.Height / GameHeight;
+            var width = GameCanvas.Width / Settings.Default.GameWidth;
+            var height = GameCanvas.Height / Settings.Default.GameHeight;
             //create rectangle with this atributes
             var rect = new Rectangle {
                 Stroke = new SolidColorBrush(Colors.Red),
@@ -194,11 +193,11 @@ namespace Snake {
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e) {
-
+            manualTimer.Stop();
             ((Button)sender).Content = "Fast Forward";
 
             gameTicker.Stop();
-            while (ActualRound % skiprounds != 0) {
+            while (ActualRound % Settings.Default.skipRoudns != 0) {
                 await FastLoop();
             }
 
@@ -288,6 +287,10 @@ namespace Snake {
             };
             //Set rectangle and align it by top left corner
             return line;
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e) {
+            new SettingsWindow().Show();
         }
     }
 }

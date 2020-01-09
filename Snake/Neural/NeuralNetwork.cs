@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Snake.Properties;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,8 +11,8 @@ namespace Snake.Neural {
         public List<Input> inputs = new List<Input>();
         public List<List<IInput>> Connections = new List<List<IInput>>();
         public List<List<Neuron>> NeuronLayers = new List<List<Neuron>>();
-        const int NoInputs = 4;
-        const int NoOutputs = 4;
+        int NoInputs = Settings.Default.Walls ? 12 : 8;
+        const int NoOutputs = 2;
 
 
         public NeuralNetwork(List<int> NoHiddenNeurons, Random randomizer) {
@@ -40,7 +41,7 @@ namespace Snake.Neural {
             }
         }
 
-        public NeuralNetwork(NeuralNetwork n1, NeuralNetwork n2, Random rng, double MutateRatio) {
+        public NeuralNetwork(NeuralNetwork n1, NeuralNetwork n2, Random rng) {
             List<int> NoHiddenNeurons = new List<int>();
             //first layer is input and that is generated separately
             for(int i=1; i<n1.NeuronLayers.Count; i++) {
@@ -61,7 +62,7 @@ namespace Snake.Neural {
                 for (int i = 0; i < NoHiddenNeurons[layer]; i++) {
                     List<IInput> localConnections = new List<IInput>();
                     for (int j = 0; j < NeuronLayers[layer].Count; j++) {
-                        localConnections.Add(new Connection(MutateWeight((Connection)n1.Connections[layer][i*j], (Connection)n2.Connections[layer][i*j], rng, MutateRatio), NeuronLayers[layer][j],i,j));
+                        localConnections.Add(new Connection(MutateWeight((Connection)n1.Connections[layer][i*j], (Connection)n2.Connections[layer][i*j], rng, Settings.Default.MutateRatio), NeuronLayers[layer][j],i,j));
                     }
                     neurons.Add(new Neuron(localConnections));
                     connections.AddRange(localConnections);
@@ -92,10 +93,10 @@ namespace Snake.Neural {
             return output;
         }
 
-        public List<double> DoNeuralStuff(bool[] inputs) {
-            if (inputs.Length != this.inputs.Count) throw new IndexOutOfRangeException("input length is not same than input count");
+        public List<double> DoNeuralStuff(List<bool> inputs) {
+            if (inputs.Count != this.inputs.Count) throw new IndexOutOfRangeException("input length is not same than input count");
 
-            for (int i = 0; i < inputs.Length; i++) {
+            for (int i = 0; i < inputs.Count; i++) {
                 this.inputs[i].Value = inputs[i] ? 1 : 0;
             }
 

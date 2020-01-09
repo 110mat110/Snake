@@ -1,4 +1,5 @@
 ﻿using Snake.Neural;
+using Snake.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,17 +17,11 @@ namespace Snake {
         private List<SnakeObject> SnakeList = new List<SnakeObject>();
         private List<SnakeObject> DeadSnakes = new List<SnakeObject>();
         private List<Apple> Apples = new List<Apple>();
-        public int GameWidth { get; private set; }
-        public int GameHeight { get; private set; }
         public string EndCausing { get; private set; }
 
         private Random random;
-        private int penalty;
-        private int AppleTimeSpan = -1;
-        private int NoRounds = -1;
-        private double treshold;
 
-        public int BestFitness { get {
+        public double BestFitness { get {
                 return GetAllSnakes().Max(x => x.Fitness);
         }}
         public int RunningSnakes { get {
@@ -36,70 +31,46 @@ namespace Snake {
         public int GameRounds { get; private set; }
 
         /*Game strategy when game ends when noone touch apple for long time*/
-        public Game(int gameWidth, int gameHeight, int NoSnakes, List<SnakeObject> snakes, Random random, double MutateRatio, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
-            GameWidth = gameWidth;
-            GameHeight = gameHeight;
+        public Game(List<SnakeObject> snakes, Random random, bool mutate) {
             GameRounds = 0;
             this.random = random;
-            this.penalty = penalty;
-            this.treshold = treshold;
-            this.AppleTimeSpan = AppleTimeSpan;
-            this.NoRounds = NoRounds;
-
-            MutateSnakes(NoSnakes, snakes, random, MutateRatio);
-
-            Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
+            if (mutate) {
+                SnakeList = Mutator.MutateSnakesForMultiGame(snakes, random);
+            } else {
+                SnakeList = snakes;
+            }
+            Apples.Add(new Apple(SnakeList, random));
         }
 
-        public Game(int gameWidth, int gameHeight, int NoSnakes, Random random, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
-            GameWidth = gameWidth;
-            GameHeight = gameHeight;
-            GameRounds = 0;
-            this.AppleTimeSpan = AppleTimeSpan;
-            this.NoRounds = NoRounds;
-            this.random = random;
-            this.penalty = penalty;
-            this.treshold = treshold;
+        public Game(Random random) {
 
-            for (int i = 0; i < NoSnakes; i++)
-                SnakeList.Add(new SnakeObject(GameWidth, GameHeight, random, penalty, treshold));
+            GameRounds = 0;
+            this.random = random;
+
+
+            for (int i = 0; i < Settings.Default.NoSnakes; i++)
+                SnakeList.Add(new SnakeObject(random));
 
             //set apple default canvas position
             //create new apple
-            Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
+            Apples.Add(new Apple(SnakeList, random));
         }
         /*END Game strategy when game ends when noone touch apple for long time*/
 
-            //Strategy, when we add presorted snakes to game
-        public Game(int gameWidth, int gameHeight, List<SnakeObject> snakes, Random random, int penalty, int AppleTimeSpan, int NoRounds, double treshold) {
-            GameWidth = gameWidth;
-            GameHeight = gameHeight;
-            GameRounds = 0;
-            this.random = random;
-            this.penalty = penalty;
-            this.treshold = treshold;
-            this.AppleTimeSpan = AppleTimeSpan;
-            this.NoRounds = NoRounds;
-
-            SnakeList = snakes;
-
-            Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
-        }
-
-        private void MutateSnakes(int noSnakes, List<SnakeObject> snakes, Random rng, double MutateRatio) {
+        private void MutateSnakes(List<SnakeObject> snakes, Random rng) {
             List<SnakeObject> newSnakes = new List<SnakeObject>();
-            for(int i=0; i<Math.Round(noSnakes/2 + 0.1); i++)
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, snakes[i].Brain, penalty, treshold));            
+            for(int i=0; i<Math.Round(Settings.Default.NoSnakes/2 + 0.1); i++)
+                newSnakes.Add(new SnakeObject( rng, snakes[i].Brain));            
             
             for(int i=1; i<snakes.Count; i++) {
-                NeuralNetwork brain = new NeuralNetwork(snakes[i - 1].Brain, snakes[i].Brain, rng, MutateRatio);
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty, treshold));
-                newSnakes.Add(new SnakeObject(GameWidth, GameHeight, rng, brain, penalty, treshold));
+                NeuralNetwork brain = new NeuralNetwork(snakes[i - 1].Brain, snakes[i].Brain, rng);
+                newSnakes.Add(new SnakeObject(rng, brain));
+                newSnakes.Add(new SnakeObject(rng, brain));
             }
             snakes.Clear();
 
             Shuffle(newSnakes,rng);
-            SnakeList = newSnakes.Take(noSnakes).ToList();
+            SnakeList = newSnakes.Take(Settings.Default.NoSnakes).ToList();
         }
 
         private static void Shuffle<T>(IList<T> list, Random rng) {
@@ -138,13 +109,18 @@ namespace Snake {
             HandleColisions();
             //Handle apple
             HandleApple();
+
+            if(SnakeList.Count == 0) {
+                EndCausing = "all snakes are dead";
+                Active = false;
+            }
         }
 
         private void MoveSnakes() {
             try {
                 object locker = new object();
                 foreach (SnakeObject s in SnakeList) {
-                    s.UseBrainToMove(Apples, locker);
+                    s.UseBrainToTurn(Apples, locker);
                 }
             } catch (Exception ex) {
                 Debug.WriteLine(ex.Message);
@@ -185,10 +161,10 @@ namespace Snake {
             foreach (var s in SnakeList) {
                 s.EatApple(Apples);
             }
-            if (AppleTimeSpan > -1) {
+            if (Settings.Default.AppleTimeSpan > -1) {
                 foreach (var A in Apples) {
                     A.LiveSpan++;
-                    if (A.LiveSpan > AppleTimeSpan) {
+                    if (A.LiveSpan > Settings.Default.AppleTimeSpan) {
                         EndCausing = "Apple is too old";
                         this.Active = false;
                         return;
@@ -197,7 +173,7 @@ namespace Snake {
             }
 
             if (Apples.Count == 0)
-                Apples.Add(new Apple(SnakeList, GameWidth, GameHeight, random));
+                Apples.Add(new Apple(SnakeList, random));
         }
 
         public List<SnakeObject> GetAllSnakes() {
@@ -205,8 +181,8 @@ namespace Snake {
         }
 
         private void DecideIfStillGame() {
-            if (NoRounds > -1) {
-                if (RunningSnakes <= 1 || GameRounds > NoRounds) {
+            if (Settings.Default.NoRounds > -1) {
+                if (RunningSnakes <= 1 || GameRounds > Settings.Default.NoRounds) {
                     EndCausing = "Basic decision 1st";
                     Active = false;
                 }
