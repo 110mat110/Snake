@@ -39,10 +39,10 @@ namespace Snake {
                 gameList.Add(new Game(globalRandom));
 
             manualTimer = new DispatcherTimer {
-                Interval = new TimeSpan(0, 0, 0, 0, 50)
+                Interval = new TimeSpan(0, 0, 0, 0, 100)
             };
             manualTimer.Tick += ManualTimer_Tick;
-            //manualTimer.Start();
+            manualTimer.Start();
             /*Simulating game mechanics. Every 50ms (2fps) there is game tick event*/
             gameTicker = new DispatcherTimer {
                 Interval = new TimeSpan(1)
@@ -55,6 +55,9 @@ namespace Snake {
         private void ManualTimer_Tick(object sender, EventArgs e) {
             gameList[0].GetBestSnake().TurnSnake(Keyboard.IsKeyDown(Key.Left), Keyboard.IsKeyDown(Key.Right));
 
+            var values = Sensors.FindAppleDirectionaly(gameList[0].Apples, gameList[0].GetBestSnake());
+
+            Debug.WriteLine(values[0] + " " + values[1] + " " + values[2] + " " + values[3]);
             DrawGame(gameList[0]);
         }
 
@@ -211,7 +214,7 @@ namespace Snake {
             int width = nn.NeuronLayers.Count;
 
             double verticalDifference = (neuralCanvas.Height) / height;
-            double horizontalDifference = (neuralCanvas.Width - 80) / width;
+            double horizontalDifference = (neuralCanvas.Width - 40) / width;
             int i = 0;
 
             foreach (var layer in nn.Connections) {
@@ -272,13 +275,22 @@ namespace Snake {
         }
 
         private UIElement CreateConnection(Connection c, double X1, double X2, double Y1, double Y2) {
+
             var line = new Line {
-                Stroke = new SolidColorBrush(new Color() {
+                Stroke = c.Weight > 0
+                ? new SolidColorBrush(new Color() {
                     A = 255,
-                    R = (byte)(255 * c.Weight),
-                    G = 0,
-                    B = (byte)(255 - (255 * c.Weight)),
+                    R = 255,
+                    G = (byte)(255 *(1- c.Weight)),
+                    B = (byte)(255 * (1 - c.Weight)),
+                })
+                : new SolidColorBrush(new Color() {
+                    A = 255,
+                    R = (byte)Math.Abs((255 * (1 - c.Weight))),
+                    G = (byte)Math.Abs((255 * (1 - c.Weight))),
+                    B = (byte)255,
                 }),
+
                 X1 = X1,
                 X2 = X2,
                 Y1 =Y1,

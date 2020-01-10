@@ -20,7 +20,7 @@
     <Setting Name="NoRounds" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">20000</Value>
     </Setting>
-    <Setting Name="AppleTimeSpan" Type="System.Int32" Scope="User">
+    <Setting Name="AppleEnergy" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">200</Value>
     </Setting>
     <Setting Name="MutateRatio" Type="System.Double" Scope="User">
@@ -34,6 +34,9 @@
     </Setting>
     <Setting Name="Walls" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="AppleCount" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">5</Value>
     </Setting>
   </Settings>
 </SettingsFile>

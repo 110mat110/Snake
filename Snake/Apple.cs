@@ -10,16 +10,12 @@ namespace Snake {
     public class Apple {
         //Posoiton of apple
         public Point Position { get; set; }
-        //How long is apple alive?
-        public int LiveSpan { get; set; }
         //constructor with multiple parameters. It is for generation of apple
         public Apple(List<SnakeObject> Snake, Random rnd) {
             GenerateNewPosition(Snake, rnd);
-            LiveSpan = 0;
         }
         public Apple(Point Position) {
             this.Position = Position;
-            LiveSpan = 0;
         }
 
 

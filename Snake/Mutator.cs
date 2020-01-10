@@ -11,7 +11,7 @@ namespace Snake
     public static class Mutator
     {
         public static List<SnakeObject> MutateForOneSnakeGame(List<SnakeObject> snakes, Random rng) {
-            snakes = snakes.Where(x => x.Fitness > Settings.Default.AppleTimeSpan).OrderByDescending(x => x.Fitness).ToList();
+            snakes = snakes.Where(x => x.Fitness > Settings.Default.AppleEnergy).OrderByDescending(x => x.Fitness).ToList();
             List<SnakeObject> bestSnakes = new List<SnakeObject>();
             List<SnakeObject> newSnakes = new List<SnakeObject>();
             if (snakes.Count != 0) {

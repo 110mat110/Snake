@@ -98,12 +98,12 @@ namespace Snake.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("200")]
-        public int AppleTimeSpan {
+        public int AppleEnergy {
             get {
-                return ((int)(this["AppleTimeSpan"]));
+                return ((int)(this["AppleEnergy"]));
             }
             set {
-                this["AppleTimeSpan"] = value;
+                this["AppleEnergy"] = value;
             }
         }
         
@@ -152,6 +152,18 @@ namespace Snake.Properties {
             }
             set {
                 this["Walls"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
+        public int AppleCount {
+            get {
+                return ((int)(this["AppleCount"]));
+            }
+            set {
+                this["AppleCount"] = value;
             }
         }
     }

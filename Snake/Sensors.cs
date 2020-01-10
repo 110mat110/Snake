@@ -9,14 +9,18 @@ namespace Snake {
     public static class Sensors {
         public static List<double> FindAppleIn4Directions(List<Apple> apples, SnakeBlock head) {
             double[] inputs = new double[] { 0, 0, 0, 0 };
-            if (apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y > head.ActualPosition.Y).Count() > 0)
-                inputs[0] = head.ActualPosition.Y - apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y > head.ActualPosition.Y).First().Position.Y;
+            //T
             if (apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y < head.ActualPosition.Y).Count() > 0)
-                inputs[1] = apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y < head.ActualPosition.Y).First().Position.Y - head.ActualPosition.Y;
+                inputs[1] = head.ActualPosition.Y - apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y < head.ActualPosition.Y).First().Position.Y;
+            //R
             if (apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X > head.ActualPosition.X).Count() > 0)
-                inputs[2] = head.ActualPosition.X - apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X > head.ActualPosition.X).First().Position.X;
+                inputs[2] = apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X > head.ActualPosition.X).First().Position.X - head.ActualPosition.X;
+            //B
+            if (apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y > head.ActualPosition.Y).Count() > 0)
+                inputs[0] = apples.Where(x => (x.Position.X == head.ActualPosition.X) && x.Position.Y > head.ActualPosition.Y).First().Position.Y - head.ActualPosition.Y;
+            //L
             if (apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X < head.ActualPosition.X).Count() > 0)
-                inputs[3] = apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X < head.ActualPosition.X).First().Position.X - head.ActualPosition.X;
+                 inputs[3] = head.ActualPosition.X - apples.Where(x => (x.Position.Y == head.ActualPosition.Y) && x.Position.X < head.ActualPosition.X).First().Position.X;
             return inputs.ToList();
         }
 
@@ -57,16 +61,16 @@ namespace Snake {
             }
             return returnList;
         }
-        private static void Shift<T>(List<T> list) {
+        private static void Shift(List<double> list) {
             var LastItem = list[list.Count-1];
-            for (int i=list.Count-1; i > 1; i--) {
+            for (int i=list.Count-1; i > 0; i--) {
                 list[i] = list[i - 1];
             }
             list[0] = LastItem;
         }
 
         private static List<double> TransferToDirectional(SnakeObject snake, List<double> outputs) {
-            for (int i = 0; i < (int)snake.Orientation; i++) {
+            for (int i = (int)snake.Orientation; i >= 0 ; i--) {
                 Shift(outputs);
             }
             return outputs;

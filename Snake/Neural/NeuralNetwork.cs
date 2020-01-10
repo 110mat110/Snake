@@ -12,7 +12,7 @@ namespace Snake.Neural {
         public List<List<IInput>> Connections = new List<List<IInput>>();
         public List<List<Neuron>> NeuronLayers = new List<List<Neuron>>();
         int NoInputs = Settings.Default.Walls ? 12 : 8;
-        const int NoOutputs = 2;
+        const int NoOutputs = 3;
 
 
         public NeuralNetwork(List<int> NoHiddenNeurons, Random randomizer) {

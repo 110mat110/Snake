@@ -27,7 +27,7 @@ namespace Snake {
             NoGamesAtOnceTB.Text = Settings.Default.NoGamesAtOnce.ToString();
             PenaltyTB.Text = Settings.Default.Penalty.ToString();
             NoRoundsTB.Text = Settings.Default.NoRounds.ToString();
-            AppleTimeSpanTB.Text = Settings.Default.AppleTimeSpan.ToString();
+            AppleTimeSpanTB.Text = Settings.Default.AppleEnergy.ToString();
             MutateratioTB.Text = Settings.Default.MutateRatio.ToString();
             TresholdTB.Text = Settings.Default.Treshold.ToString();
             SkipRoundsTB.Text = Settings.Default.skipRoudns.ToString();
@@ -40,7 +40,7 @@ namespace Snake {
             Settings.Default.NoGamesAtOnce = int.Parse(NoGamesAtOnceTB.Text);
             Settings.Default.Penalty = int.Parse(PenaltyTB.Text);
             Settings.Default.NoRounds = int.Parse(NoRoundsTB.Text);
-            Settings.Default.AppleTimeSpan = int.Parse(AppleTimeSpanTB.Text);
+            Settings.Default.AppleEnergy = int.Parse(AppleTimeSpanTB.Text);
             Settings.Default.MutateRatio = double.Parse(MutateratioTB.Text);
             Settings.Default.Treshold = double.Parse(TresholdTB.Text);
             Settings.Default.skipRoudns = int.Parse(SkipRoundsTB.Text);

@@ -15,38 +15,42 @@ namespace Snake {
 
         public double Fitness { get { return Active ? LifeTime * (1 + CurrentSnakeBlocks.Count * 0.1) : LifeTime * (1 + (CurrentSnakeBlocks.Count - Settings.Default.Penalty) * 0.1); } }
         public NeuralNetwork Brain;
+        public int Energy { get; set; }
 
         private int LastMoveX = 1;
         private int LastMoveY = 0;
 
         private int LifeTime = 0;
-
         public Orientation Orientation { get; private set; }
 
+        #region Constructor
         public SnakeObject(Point firstPosition, Random random) {
             Orientation = Orientation.Top;
             Active = true;
+            Energy = Settings.Default.AppleEnergy;
             CurrentSnakeBlocks.Add(new SnakeBlock(firstPosition));
 
-            Brain = new NeuralNetwork(new List<int>() { 10 }, random);
+            Brain = new NeuralNetwork(new List<int>() { 10, 4 }, random);
         }
-
         public SnakeObject(Random randomizer) {
             Active = true;
             Orientation = Orientation.Top;
+            Energy = Settings.Default.AppleEnergy;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, Settings.Default.GameWidth), randomizer.Next(0, Settings.Default.GameHeight))));
 
-            Brain = new NeuralNetwork(new List<int>() { 10 }, randomizer);
+            Brain = new NeuralNetwork(new List<int>() { 10, 4 }, randomizer);
         }
-
         public SnakeObject(Random randomizer, NeuralNetwork brain) {
             Active = true;
             Orientation = Orientation.Top;
+            Energy = Settings.Default.AppleEnergy;
             CurrentSnakeBlocks.Add(new SnakeBlock(new Point(randomizer.Next(0, Settings.Default.GameWidth), randomizer.Next(0, Settings.Default.GameHeight))));
 
             Brain = brain;
         }
+        #endregion
 
+        #region Movement
         public void TurnSnake(bool left, bool right) {
             if (right) {
                 var ior = (int)Orientation + 1;
@@ -68,7 +72,6 @@ namespace Snake {
         public void MoveSnakeInDirection(Vector directionVector) {
             MoveSnakeInDirection((int)directionVector.X, (int)directionVector.Y);
         }
-
         public void MoveSnakeInDirection(int xdirection, int ydirection) {
             if (!Active) return;
             //If snake is not moving, do not move :P
@@ -106,8 +109,38 @@ namespace Snake {
             }
 
             LifeTime++;
+            Energy--;
         }
 
+        private bool[] DecodeTurn(List<double> move) {
+            if (move.Any(x => x > Settings.Default.Treshold)) {
+                if (move[2] > move[0] && move[2] > move[1])
+                    return new bool[] { false, false };
+                else
+                    return new bool[] { move[0] > move[1], move[0] < move[1] };
+            }
+            return new bool[] { false, false };
+        }
+        private Vector DecodeMove(List<double> move) {
+            //only one way and only if there is enough strength
+            int index = move.IndexOf(move.Max());
+
+            if (move[index] > Settings.Default.Treshold) {
+                switch (index) {
+                    case 0: return new Vector(+1, 0);
+                    case 1: return new Vector(-1, 0);
+                    case 2: return new Vector(0, 1);
+                    case 3: return new Vector(0, -1);
+
+                    default: return new Vector(0, 0);
+                }
+            }
+
+            return new Vector(0, 0);
+        }
+        #endregion
+
+        #region Move stretegy
         public void RandomMoveSnake(Random randomizer) {
             MoveSnakeInDirection(randomizer.Next(3) - 1, randomizer.Next(3) - 1);
         }
@@ -136,36 +169,9 @@ namespace Snake {
 
             TurnSnake(moves[0], moves[1]);
         }
+        #endregion
 
-
-        private bool[] DecodeTurn(List<double> move) {
-            return move.Any(x=> x > Settings.Default.Treshold)
-                ? (new bool[] { move[0] > move[1], move[0] < move[1] })
-                : (new bool[] { false, false });
-        }
-
-        private Vector DecodeMove(List<double> move) {
-            //only one way and only if there is enough strength
-            int index = move.IndexOf(move.Max());
-
-            if (move[index] > Settings.Default.Treshold) {
-                switch (index) {
-                    case 0: return new Vector(+1, 0);
-                    case 1: return new Vector(-1, 0);
-                    case 2: return new Vector(0, 1);
-                    case 3: return new Vector(0, -1);
-
-                    default: return new Vector(0, 0);
-                }
-            }
-
-            return new Vector(0, 0);
-        }
-
-        private double Distance(Point p1, Point p2) {
-            return Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
-        }
-
+        #region Life Functions
         public void DetectColision(List<SnakeObject> snakeList, List<Apple> apples) {
             //Solid walls
             if (CurrentSnakeBlocks[0].ActualPosition.X > Settings.Default.GameWidth
@@ -210,11 +216,17 @@ namespace Snake {
             }
             foreach (var apple in applesToRemoveList) {
                 apples.Remove(apple);
+                Energy = Settings.Default.AppleEnergy;
             }
         }
 
         private void ExtendSnake() {
             CurrentSnakeBlocks.Add(new SnakeBlock(CurrentSnakeBlocks[CurrentSnakeBlocks.Count - 1].LastPosition));
         }
+
+        public void CheckEnergy(List<Apple> apples) {
+            if (Energy <= 0) KillSnake(apples);
+        }
+        #endregion
     }
 }
